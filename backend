@@ -1,0 +1,82 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+const PORT = 5000;
+
+app.use(cors());
+app.use(bodyParser.json());
+
+// Path to the JSON file
+const dataPath = path.join(__dirname, 'data.json');
+
+// Initialize data file if it doesn't exist
+if (!fs.existsSync(dataPath)) {
+  fs.writeFileSync(dataPath, JSON.stringify({ developers: [] }));
+}
+
+// Read data from JSON file
+const readData = () => {
+  const data = fs.readFileSync(dataPath, 'utf8');
+  return JSON.parse(data);
+};
+
+// Write data to JSON file
+const writeData = (data) => {
+  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+};
+
+// Get all developers
+app.get('/api/developers', (req, res) => {
+  const data = readData();
+  res.json(data.developers);
+});
+
+// Add a new developer
+app.post('/api/developers', (req, res) => {
+  const data = readData();
+  const newDeveloper = {
+    id: data.developers.length + 1,
+    name: req.body.name,
+    availability: req.body.availability,
+    hourlyRate: req.body.hourlyRate,
+    bookedSlots: [],
+  };
+  data.developers.push(newDeveloper);
+  writeData(data);
+  res.status(201).json(newDeveloper);
+});
+
+// Update a developer
+app.put('/api/developers/:id', (req, res) => {
+  const data = readData();
+  const developerIndex = data.developers.findIndex(dev => dev.id === parseInt(req.params.id));
+  if (developerIndex === -1) {
+    return res.status(404).json({ message: 'Developer not found' });
+  }
+  data.developers[developerIndex] = {
+    ...data.developers[developerIndex],
+    ...req.body,
+  };
+  writeData(data);
+  res.json(data.developers[developerIndex]);
+});
+
+// Book a developer
+app.post('/api/developers/:id/book', (req, res) => {
+  const data = readData();
+  const developerIndex = data.developers.findIndex(dev => dev.id === parseInt(req.params.id));
+  if (developerIndex === -1) {
+    return res.status(404).json({ message: 'Developer not found' });
+  }
+  data.developers[developerIndex].bookedSlots.push(req.body.time);
+  writeData(data);
+  res.json(data.developers[developerIndex]);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
