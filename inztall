@@ -1,0 +1,4 @@
+mkdir quick-dev-booking-backend
+cd quick-dev-booking-backend
+npm init -y
+npm install express cors body-parser
